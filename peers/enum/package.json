@@ -1,0 +1,31 @@
+{
+  "name": "enum",
+  "description": "a simple enum class",
+  "private": true,
+  "version": "1.0.1",
+  "author": "Tom Kenny",
+  "contributors": [
+    "Tom Kenny"
+  ],
+  "license": "MIT",
+  "main": "enum.js",
+  "main": "module.js",
+  "eslintConfig": {
+    "env": {
+      "es6": true,
+      "node": true
+    },
+    "parserOptions": {
+      "sourceType": "module",
+      "ecmaVersion": 2018
+    },
+    "extends": "eslint:recommended",
+    "rules": {
+      "no-unused-vars": 0,
+      "no-console": 0
+    }
+  },
+  "eslintIgnore": [
+    "ignored/"
+  ]
+}
