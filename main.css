@@ -1,0 +1,18 @@
+.memory {
+	background: blue;
+	color: white;
+
+}
+
+.register {
+	background: green;
+	color: white;
+}
+
+
+.memory li, 
+.register li {
+	list-style: none;
+	display: inline-block;
+	margin-right: 1em;
+}
