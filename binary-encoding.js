@@ -7,6 +7,9 @@ export let binToDec = (/*string*/bin, encoding)=>{
 	let charactersDeep = 0
 	let base10 = 0
 	if (encoding === encodings.TWO_COMP){
+		if (bin[0] === '1'){
+			bin = negateTwosComplement(bin)
+		}
 		while (bin.length > 0){
 			let lastChar = bin.substr(bin.length - 1, 1)
 			bin = bin.substr(0, bin.length - 1)
@@ -18,14 +21,13 @@ export let binToDec = (/*string*/bin, encoding)=>{
 	return base10
 }
 
-export let binToHex = (/*string*/bin, encoding)=>{
+export let binToHex = (/*string*/bin)=>{
 	// console.debug('TO HEX', this)
-	let input = this.valueOf()
 	let hexString = ''
-	if (input.length % 4 !== 0) throw Error('toHex: bitstring not in multiple of 4 bits')
-	while (input.length > 0){
-		let fourBits = input.substr(0, 4)
-		input = input.slice(4)
+	if (bin.length % 4 !== 0) throw Error('toHex: bitstring not in multiple of 4 bits')
+	while (bin.length > 0){
+		let fourBits = bin.substr(0, 4)
+		bin = bin.slice(4)
 		let hexChar = hexAlphabet[binToDec(fourBits)]
 		hexString = hexString + hexChar
 	}
@@ -36,6 +38,10 @@ export let binToHex = (/*string*/bin, encoding)=>{
 export let complementBit = char => char === '1' ? '0' : '1'
 export let complementBitArr = arr => Array.from(arr).map(char => complementBit(char))
 export let complementBitStr = str => complementBitArr(str).join('')
+export let negateTwosComplement = str => { 
+	let first1 = str.lastIndexOf('1')
+	return complementBitStr(str.substr(0, first1)) + str.substr(first1, str.length - 1)
+}
 
 export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8)=>{
 	// console.debug('FROM DEC', integer)
@@ -54,33 +60,29 @@ export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8)=>
 		// Spin the signed number into range
 		integer = integer % signedMax
 
-		let accumulator = ''
+		// From right to left, exploit the modulo operation to keep finding x * 2^0 isolated from other bits
+		let bits = ''
 		while (integer > 0){
 			let lsb = integer % 2 // Least significant bit is either 1 or 0 and we've subtracted all multiples of 2
 			integer = (integer - lsb) / 2
-			accumulator = new String(lsb) + accumulator
+			bits = new String(lsb) + bits
 		}
 
-		let beforeNegation = accumulator
-
 		// Prepend non-significant 0 bits
-		let zeroesToPrepend = Math.max(0, wordLength - 1 - accumulator.length)
-		accumulator = '0'.repeat(zeroesToPrepend) + accumulator
+		let zeroesToPrepend = Math.max(0, wordLength - 1 - bits.length)
+		bits = '0'.repeat(zeroesToPrepend) + bits
 
 		// Use a shortcut to get the negative two's complement, then add the sign bit
 		if (isNegative){ 
-			let first1 = accumulator.lastIndexOf('1')
-			let negated = complementBitStr(accumulator.substr(0, first1)) + accumulator.substr(first1, accumulator.length - 1)
-			accumulator = '1' + negated
+			let bits = negateTwosComplement(bits)
+			bits = '1' + bits
 		} else {
-			accumulator = '0' + accumulator
+			bits = '0' + bits
 		}
 
-		if (accumulator.length > wordLength) throw Error(`Final bit string required to represent integer ${givenInteger} is longer than word length.`)
+		if (bits.length > wordLength) throw Error(`Final bit string required to represent integer ${givenInteger} is longer than word length.`)
 
-		console.debug('decToBin', givenInteger, beforeNegation, accumulator)
-
-		return accumulator
+		return bits
 	}
 }
 

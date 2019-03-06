@@ -1,6 +1,7 @@
-import { encodings, hexAlphabet } from './config.js'
+import { encodings } from './config.js'
 import { render } from './render.js'
 import { binToHex, hexToBin, binToDec, decToBin } from './binary-encoding.js'
+import { addFloating, addTwoComp, boolOr, boolAnd, boolXor, bitRotateRight } from './operations.js'
 
 // Main memory
 let mem = Array.from(Array(0x100)) // 256
@@ -53,9 +54,9 @@ class ControlUnit {
 			ControlUnit.moveRegister,
 			ControlUnit.addTwoComp,
 			ControlUnit.addFloating,
-			ControlUnit.orBool,
-			ControlUnit.andBool,
-			ControlUnit.xorBool,
+			ControlUnit.or,
+			ControlUnit.and,
+			ControlUnit.xor,
 			ControlUnit.rotate,
 			ControlUnit.jump,
 			ControlUnit.halt
@@ -137,7 +138,7 @@ class ControlUnit {
 	}
 
 	static addTwoComp(result, x, y) {
-		reg[result] = binaryAdd(regs[x.toDec()], regs[y.toDec()])
+		regs[result] = addTwoComp(regs[x.toDec()], regs[y.toDec()])
 
 		return {
 			opcode: '5'
@@ -145,31 +146,31 @@ class ControlUnit {
 	}
 
 	static addFloating(result, x, y){
-
+		regs[result] = addFloating(regs[x.toDec()], regs[y.toDec()])
 
 		return {
 			opcode: '6'
 		}
 	}
 
-	static orBool(result, x, y){
-
+	static or(result, x, y){
+		regs[result] = boolOr(regs[x.toDec()], regs[y.toDec()])
 
 		return {
 			opcode: '7'
 		}
 	}
 
-	static andBool(result, x, y){
-
+	static and(result, x, y){
+		regs[result] = boolAnd(regs[x.toDec()], regs[y.toDec()])
 
 		return {
 			opcode: '8'
 		}
 	}
 
-	static xorBool(result, x, y){
-
+	static xor(result, x, y){
+		regs[result] = boolXor(regs[x.toDec()], regs[y.toDec()])
 
 		return {
 			opcode: '9'
@@ -177,8 +178,8 @@ class ControlUnit {
 	}
 
 	// TODO how many notches
-	static rotate(result, inputIndex){
-
+	static rotate(target, rotations){
+		regs[target] = bitRotateRight(regs[target], rotations)
 
 		return {
 			opcode: 'A'
@@ -211,7 +212,7 @@ class ControlUnit {
 	}
 
 	flush(arr, wordLength){
-		arr = arr.map( val => new Bitstring('0'.repeat(wordLength), {wordLength}) )
+		arr = arr.forEach( () => new Bitstring('0'.repeat(wordLength), {wordLength}) )
 		return arr
 	}
 }
