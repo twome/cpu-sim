@@ -4,6 +4,8 @@
 	having to already understand compilation, assembly, or low-level languages).
 */
 
+// TODO: specify the main mem address size & the size within each memory cell. this will determine the size of instructions
+
 import { config } from './config.js'
 import { Bitstring } from './binary-encoding.js'
 import { addFloating, addTwoComp, boolOr, boolAnd, boolXor, bitRotateRight } from './operations.js'
@@ -51,9 +53,12 @@ export class ControlUnit {
 
 	fetchInstruction(address){
 		// Fetch the PC instruction from main memory
-		let instruction = this.mem[address.toDec()]
+		let byte1 = this.mem[address.toDec()]
+		let byte2 = this.mem[address.toDec() + 1]
+		let instruction = byte1 + byte2
 
-		if (instruction === null || instruction === undefined) throw Error(`Address is empty; can't decode`)
+		if (instruction.length !== 16) throw Error(`Instruction register must be 2 bytes, not: ${instruction.length} bits`) // 2 bytes; 4 hexes
+ 		if (instruction === null || instruction === undefined) throw Error(`Address is empty; can't decode`)
 		
 		// Place the instruction in the register, ready to decode
 		this.ir = instruction
@@ -64,7 +69,7 @@ export class ControlUnit {
 
 	decodeInstruction(strHex){
 		if (strHex.length !== 4) throw Error('strhex must be 4 hex chars')
-		let opcode = Number('0x' + strHex[0])
+		let opcode = Bitstring.fromHex(strHex[0]).toDec()
 		let second = Bitstring.fromHex(strHex[1])
 		let third = Bitstring.fromHex(strHex[2])
 		let fourth = Bitstring.fromHex(strHex[3])
@@ -91,12 +96,12 @@ export class ControlUnit {
 		this.fetchInstruction(this.pc)
 		this.decodeInstruction(this.ir)
 		this.executeInstruction(...this.decodedInstruction)
-		afterCycleFn(this.mem, this.regs, this.pc, this.ir)
-		this.machineCycle()
+		if (afterCycleFn) afterCycleFn(this.mem, this.regs, this.pc, this.ir)
+		this.machineCycle(afterCycleFn)
 	}
 
 	static loadAddress(regIndex, address){
-		let pattern = this.mem[address.toDec()] + this.mem[address.toDec() + 1]
+		let pattern = this.mem[address.toDec()]
 		this.regs[regIndex.toDec()] = pattern
 
 		return {

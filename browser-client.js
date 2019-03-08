@@ -27,14 +27,18 @@ export let renderView = (mem, reg)=>{
 	}
 }
 
-let mem = Array(0x100).fill('0000')
-mem[0] = '2032'
-mem[1] = '21ff'
+
+console.debug(Bitstring.fromHex('00'))
+let regs = Array(0x10).fill(Bitstring.fromHex('0'))
+let mem = Array(0x100).fill(Bitstring.fromHex('00'))
+mem[0] = Bitstring.fromHex('2032')
+mem[1] = Bitstring.fromHex('21ff')
 let cu = new ControlUnit({
+	mem, regs,
 	afterCycleFn: (mem, regs, pc, ir)=>{
+		console.debug(pc.toHex(), ir.toHex(), regs, mem)
 		renderView(mem, regs, pc, ir)
-	},
-	mem: mem
+	}
 })
 cu.boot()
 

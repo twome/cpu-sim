@@ -50,7 +50,6 @@ export let decToSimpleBin = dec => {
 }
 
 export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8)=>{
-	// console.debug('FROM DEC', integer)
 	let givenInteger = integer
 	let unsignedMax = Math.pow(2, wordLength)
 	
@@ -63,7 +62,6 @@ export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8)=>
 		
 		if (isNegative) integer = -integer
 
-		if (integer === signedMax && !isNegative) integer = signedMax - 1; isNegative = true // Edge case (+127 is maximum positive size)
 		// Spin the signed number into range
 		integer = integer % signedMax // TODO: This isn't accurate, I think, due to the way overflows are sign-asymmetric
 
@@ -88,13 +86,15 @@ export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8)=>
 }
 
 export let hexToBin = (hex)=>{
+	if (typeof hex !== 'string') throw Error('hex must be a string')
 	if (!hex || hex.length <= 0 || hex.match(/[^abcdef1234567890]/)) throw Error('fromHex: includes non-hexadecimal characters')
 	let accumulator = ''
 	while (hex.length > 0){
 		let hexChar = hex[0]
 		hex = hex.slice(1)
 		let decChar = hexAlphabet.indexOf(hexChar)
-		accumulator = accumulator + decToBin(decChar, undefined, 4).valueOf() // Concat
+		let bin = decToBin(decChar, undefined, 4)
+		accumulator = accumulator + bin.valueOf() // Concat
 	}
 	return accumulator
 }
