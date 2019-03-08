@@ -1,7 +1,11 @@
 import Enum from './peers/enum/enum.js'
-export const encodings = new Enum(['TWO_COMP', 'EXCESS', 'FLOATING'])
-export const hexAlphabet = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
 
+// Static data
+export const encodings = new Enum(['TWO_COMP', 'EXCESS', 'FLOATING', 'UINT8']) // Number encodings in binary
+export const hexAlphabet = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'] 
+
+// User config
 export let config = {
-	noOverflows: false
+	allowOverflows: false,
+	allowNoOps: true
 }

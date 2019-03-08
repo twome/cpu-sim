@@ -1,9 +1,6 @@
-/* eslint-env browser*/
-
 import { config as cfg, encodings, hexAlphabet } from './config.js'
 
 export let binToDec = (/*string*/bin, encoding)=>{
-	// console.debug('TO DEC', this)
 	let charactersDeep = 0
 	let base10 = 0
 	if (encoding === encodings.TWO_COMP){
@@ -22,7 +19,6 @@ export let binToDec = (/*string*/bin, encoding)=>{
 }
 
 export let binToHex = (/*string*/bin)=>{
-	// console.debug('TO HEX', this)
 	let hexString = ''
 	if (bin.length % 4 !== 0) throw Error('toHex: bitstring not in multiple of 4 bits')
 	while (bin.length > 0){
@@ -34,13 +30,23 @@ export let binToHex = (/*string*/bin)=>{
 	return hexString
 }
 
-
 export let complementBit = char => char === '1' ? '0' : '1'
 export let complementBitArr = arr => Array.from(arr).map(char => complementBit(char))
 export let complementBitStr = str => complementBitArr(str).join('')
 export let negateTwosComplement = str => { 
 	let first1 = str.lastIndexOf('1')
 	return complementBitStr(str.substr(0, first1)) + str.substr(first1, str.length - 1)
+}
+
+export let decToSimpleBin = dec => {
+	// From right to left, exploit the modulo operation to keep finding (x * 2^0) isolated from other bits (x * 2^1 + x * 2^2 + etc.)
+	let bits = ''
+	while (dec > 0){
+		let lsb = dec % 2 // Least significant bit is either 1 or 0 and we've subtracted all multiples of 2
+		dec = (dec - lsb) / 2 // Move this bit's number value out of the decimal, then reduce all the powers of 2 by one
+		bits = new String(lsb) + bits // Add this bit's number value into the binary
+	}
+	return bits
 }
 
 export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8)=>{
@@ -52,21 +58,16 @@ export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8)=>
 		let isNegative = Math.sign(integer) === -1
 		let signedMax = unsignedMax / 2 // Leave out 1 digit for sign
 		
-		if (cfg.noOverflows && integer > (signedMax / 2) - 1 ) throw Error('Exceeded maximum positive size')
-		if (cfg.noOverflows && integer < -(signedMax / 2) ) throw Error('Exceeded maximum negative size')
+		if (cfg.allowOverflows && integer > (signedMax / 2) - 1 ) throw Error('Exceeded maximum positive size')
+		if (cfg.allowOverflows && integer < -(signedMax / 2) ) throw Error('Exceeded maximum negative size')
 		
 		if (isNegative) integer = -integer
 
+		if (integer === signedMax && !isNegative) integer = signedMax - 1; isNegative = true // Edge case (+127 is maximum positive size)
 		// Spin the signed number into range
-		integer = integer % signedMax
+		integer = integer % signedMax // TODO: This isn't accurate, I think, due to the way overflows are sign-asymmetric
 
-		// From right to left, exploit the modulo operation to keep finding x * 2^0 isolated from other bits
-		let bits = ''
-		while (integer > 0){
-			let lsb = integer % 2 // Least significant bit is either 1 or 0 and we've subtracted all multiples of 2
-			integer = (integer - lsb) / 2
-			bits = new String(lsb) + bits
-		}
+		let bits = decToSimpleBin(integer) // Do the actual numeric format translation
 
 		// Prepend non-significant 0 bits
 		let zeroesToPrepend = Math.max(0, wordLength - 1 - bits.length)
@@ -74,7 +75,7 @@ export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8)=>
 
 		// Use a shortcut to get the negative two's complement, then add the sign bit
 		if (isNegative){ 
-			let bits = negateTwosComplement(bits)
+			bits = negateTwosComplement(bits)
 			bits = '1' + bits
 		} else {
 			bits = '0' + bits
@@ -86,10 +87,7 @@ export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8)=>
 	}
 }
 
-
-
 export let hexToBin = (hex)=>{
-	// console.debug('FROM HEX', hex )
 	if (!hex || hex.length <= 0 || hex.match(/[^abcdef1234567890]/)) throw Error('fromHex: includes non-hexadecimal characters')
 	let accumulator = ''
 	while (hex.length > 0){
@@ -101,6 +99,42 @@ export let hexToBin = (hex)=>{
 	return accumulator
 }
 
+/* 
+	This is a representation of a bit sequence in the form of a string - basically just to allow easier manipulation & checking.
+*/
+export class Bitstring extends String {
+	constructor(/*string,number*/inputSequence = '', {
+		encoding = Bitstring.encodings.TWO_COMP,
+		wordLength = 8, // In bits
+		floatingExponentLength = 3 // The rest of the float we'll fill with mantissa
+	}={}){
+		// Restart the constructor with a translated string if necessary
+		if (typeof inputSequence === 'number'){
+			inputSequence = Bitstring.fromDec(inputSequence)
+		} else if (inputSequence.match(/^0x/)){
+			inputSequence = Bitstring.fromHex(inputSequence.replace(/^0x/, ''))
+		}
+		if (inputSequence.match(/[^01]/)) throw Error('Bitstring: input string must consist of the characters "0" or "1"')
 
-window.hexToBin = hexToBin
-window.decToBin = decToBin
+		super(inputSequence)
+		Object.assign(this, {encoding, wordLength, floatingExponentLength}) // Bind options to instance	
+	}
+
+	toDec(){
+		return binToDec(this, this.encoding)
+	}
+
+	toHex(){
+		return binToHex(this, this.encoding)
+	}
+
+	static fromHex(hex){
+		hex = hex.replace(/^0x/, '')
+		return new Bitstring(hexToBin(hex))
+	}
+
+	static fromDec(integer, encoding = Bitstring.encodings.TWO_COMP, wordLength = 8){
+		return new Bitstring(decToBin(integer, encoding, wordLength))
+	}
+}
+Bitstring.encodings = encodings

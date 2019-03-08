@@ -10,9 +10,22 @@
 }
 
 
-.memory li, 
-.register li {
+.binary-displays {
+	padding: 0;
+}
+
+.binary-displays li {
+	padding: 0;
 	list-style: none;
 	display: inline-block;
 	margin-right: 1em;
+}
+
+.program-counter {
+	background: hsla(0,80%,30%, 1);
+	color: white;
+}
+
+.instruction-register {
+	background: hsla(0.88turn, 100%, 70%, 1);
 }

@@ -1,3 +1,7 @@
+/*
+	These are the basic ALU operations on bit sequences (as strings)
+*/
+
 export const addTwoComp = ()=>{
 
 }
