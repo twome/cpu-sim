@@ -1,12 +1,25 @@
 import { config as cfg, encodings, hexAlphabet } from './config.js'
 
+// TODO: is this correctly producing negatives?
 export let binToDec = (/*string*/bin, encoding)=>{
 	let charactersDeep = 0
 	let base10 = 0
 	if (encoding === encodings.TWO_COMP){
+		let isNegative
 		if (bin[0] === '1'){
+			isNegative = true
 			bin = negateTwosComplement(bin)
 		}
+		while (bin.length > 0){
+			let lastChar = bin.substr(bin.length - 1, 1)
+			bin = bin.substr(0, bin.length - 1)
+			let denomination = Math.pow(2, charactersDeep)
+			base10 = base10 + new Number(lastChar, 10) * denomination
+			charactersDeep = charactersDeep + 1
+		}
+		if (isNegative) base10 = -base10
+	} else if (encoding === encodings.UINT8){
+		// TODO: dedupe
 		while (bin.length > 0){
 			let lastChar = bin.substr(bin.length - 1, 1)
 			bin = bin.substr(0, bin.length - 1)
@@ -49,7 +62,7 @@ export let decToSimpleBin = dec => {
 	return bits
 }
 
-export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8)=>{
+export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8, allowOverflows = cfg.allowOverflows)=>{
 	let givenInteger = integer
 	let unsignedMax = Math.pow(2, wordLength)
 	
@@ -57,8 +70,8 @@ export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8)=>
 		let isNegative = Math.sign(integer) === -1
 		let signedMax = unsignedMax / 2 // Leave out 1 digit for sign
 		
-		if (cfg.allowOverflows && integer > (signedMax / 2) - 1 ) throw Error('Exceeded maximum positive size')
-		if (cfg.allowOverflows && integer < -(signedMax / 2) ) throw Error('Exceeded maximum negative size')
+		if (allowOverflows && integer > (signedMax / 2) - 1 ) throw Error('Exceeded maximum positive size')
+		if (allowOverflows && integer < -(signedMax / 2) ) throw Error('Exceeded maximum negative size')
 		
 		if (isNegative) integer = -integer
 
@@ -78,6 +91,17 @@ export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8)=>
 		} else {
 			bits = '0' + bits
 		}
+
+		if (bits.length > wordLength) throw Error(`Final bit string required to represent integer ${givenInteger} is longer than word length.`)
+
+		return bits
+	} else if (encoding === encodings.UINT8){
+		// TODO: dedupe the different encoding algos
+		let bits = decToSimpleBin
+
+		// Prepend non-significant 0 bits
+		let zeroesToPrepend = Math.max(0, wordLength - 1 - bits.length)
+		bits = '0'.repeat(zeroesToPrepend) + bits
 
 		if (bits.length > wordLength) throw Error(`Final bit string required to represent integer ${givenInteger} is longer than word length.`)
 
@@ -106,7 +130,8 @@ export class Bitstring extends String {
 	constructor(/*string,number*/inputSequence = '', {
 		encoding = Bitstring.encodings.TWO_COMP,
 		wordLength = 8, // In bits
-		floatingExponentLength = 3 // The rest of the float we'll fill with mantissa
+		floatingExponentLength = 3, // The rest of the float we'll fill with mantissa,
+		allowOverflows = cfg.allowOverflows
 	}={}){
 		// Restart the constructor with a translated string if necessary
 		if (typeof inputSequence === 'number'){
@@ -120,8 +145,8 @@ export class Bitstring extends String {
 		Object.assign(this, {encoding, wordLength, floatingExponentLength}) // Bind options to instance	
 	}
 
-	toDec(){
-		return binToDec(this, this.encoding)
+	toDec(encoding = this.encoding){
+		return binToDec(this, encoding)
 	}
 
 	toHex(){

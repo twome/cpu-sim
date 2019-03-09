@@ -8,18 +8,31 @@
 </head>
 <body>
 	<h1>
-		simplified von Neumann computer
+		a simplified von Neumann computer
 	</h1>
-	<div class="program-counter">program counter</div>
+	<div class="programCounter"><h3>program counter</h3></div>
 
-	<div class="instruction-register">instruction-register</div>
+	<div class="instructionRegister"><h3>instruction register</h3></div>
 
-	<ol class="memory binary-displays">
-		memory
+	<button class="ResetBtn js-ResetBtn">reset</button>
+
+	<button class="BootBtn js-BootBtn">boot</button>
+	<input type="text" class="BootAddr js-BootAddr" placeholder="set program counter (hex)" value="00"></input>
+
+	<button class="InterruptBtn js-InterruptBtn">interrupt</button>
+
+	<span class="spacer"></span>
+
+	<label for="mem-value">mem addr:value (hex)</label>
+	<input type="text" name="mem-value" class="MemAddrToChange js-MemAddrToChange" placeholder="address" value="00"></input>
+	<input type="text" class="MemValToChange js-MemValToChange" placeholder="value" value="00"></input>
+
+	<ol class="memory binaryDisplays">
+		<h3>memory</h3>
 	</ol>
 
-	<ol class="register binary-displays">
-		register
+	<ol class="register binaryDisplays">
+		<h3>register</h3>
 	</ol>
 </body>
 </html>

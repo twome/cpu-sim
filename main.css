@@ -1,16 +1,45 @@
 body {
 	font-size: 16px;
+	line-height: 1;
 	font-family: sans-serif;
+	background-color: white;
+	font-color: #222;
 }
 
 h1 {
 	font-size: 1.2em;
 	font-family: sans-serif;
-	float: right;
+	position: absolute;
+	right: 0.5em;
+	top: 0.5em;
+	margin: 0; // override default
+}
+
+h3 {
+	font-size: 1em;
+	margin: 0;
+}
+
+input[type="text"] {
+	max-width: 4em;
+}
+
+label {
+	font-size: 0.8em;
+	color: hsla(0,0%,50%,1);
+}
+
+/* For multiline text only */
+.multiline {
+	line-height: 1.5; // Better for reading but makes balancing vertical margins harder for UI elements
 }
 
 .memory {
 	background: hsla(240, 80%, 30%, 1);
+	color: white;
+}
+.memory_lastExecutedCell {
+	background: black;
 	color: white;
 }
 
@@ -20,17 +49,17 @@ h1 {
 }
 
 
-.binary-displays {
+.binaryDisplays {
 	display: flex;
 	padding: 0.62em;
 
 	flex-wrap: wrap;
-	flex-direction: row;
+	flexDirection: row;
 	align-items: center;
 	justify-content: space-evenly;
 }
 
-.binary-displays li {
+.binaryDisplays li {
 	flex-basis: calc(12.5% - 0.62em);
 	flex-grow: 1;
 	flex-shrink: 1;
@@ -44,23 +73,29 @@ h1 {
 	font-family: monospace;
 }
 
-.binary-displays li:nth-child(4n){
+.binaryDisplays li:nth-child(4n){
 	color: hsla(6, 100%, 79%, 1);
 }
 
-.program-counter {
+.programCounter {
 	background: hsla(0,80%,30%, 1);
 	color: white;
 }
 
-.instruction-register {
+.instructionRegister {
 	background: hsl(55, 100%, 53%);
 	color: #3a3a3a;
 }
 
-.program-counter,
-.instruction-register {
+.programCounter,
+.instructionRegister {
 	margin-right: 1em;
 	padding: 0.62em;
 	display: inline-block;
+}
+
+.spacer {
+	display: inline-block;
+	height: 1px;
+	width: 2em;
 }
