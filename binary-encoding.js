@@ -1,7 +1,8 @@
 import { config as cfg, encodings, hexAlphabet } from './config.js'
 
 // TODO: is this correctly producing negatives?
-export let binToDec = (/*string*/bin, encoding)=>{
+// TODO this is completely broken
+export let binToDec = (/*string*/bin, encoding = encodings.TWO_COMP)=>{
 	let charactersDeep = 0
 	let base10 = 0
 	if (encoding === encodings.TWO_COMP){
@@ -37,7 +38,7 @@ export let binToHex = (/*string*/bin)=>{
 	while (bin.length > 0){
 		let fourBits = bin.substr(0, 4)
 		bin = bin.slice(4)
-		let hexChar = hexAlphabet[binToDec(fourBits)]
+		let hexChar = hexAlphabet[binToDec(fourBits, encodings.UINT8)]
 		hexString = hexString + hexChar
 	}
 	return hexString

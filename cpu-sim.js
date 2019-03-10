@@ -114,7 +114,7 @@ export class ControlUnit {
 		clearInterval(this.waitingCycle)
 		this.interrupt = false
 		this.pc = this.cfg.bootAddress
-		this.regs = Array.from(Array(0x10))
+		this.flush(this.regs)
 		if (hard) this.flush(this.mem)
 	}
 
@@ -147,7 +147,6 @@ export class ControlUnit {
 		// Fetch the PC instruction from main memory
 		let byte1 = this.mem[address.toDec(encodings.UINT8)]
 		let byte2 = this.mem[address.toDec(encodings.UINT8) + 1] // Using the `+` operand to concatenate transforms to .toValue() ie String
-		// console.debug(address, address.toDec(encodings.UINT8), byte1, byte2, this)
 		let instruction = new Bitstring(byte1 + byte2)
 
 		// 2 bytes; 4 hexes
@@ -163,12 +162,9 @@ export class ControlUnit {
 		let nextInstructionAddress = this.pc.toDec(encodings.UINT8) + 2 // TODO: replace with binary addition
 		if (nextInstructionAddress > this.mem.length - 1){
 			this.pc = this.cfg.bootAddress 
-			console.debug('reset pc')
-			console.debug(this.pc, nextInstructionAddress)
 			this.interrupt = 1
 			return Error('Next instruction address exceeds maximum memory address; we have reached the last address.')
 		} else {
-			console.debug('set pc to next')
 			this.pc = Bitstring.fromDec(nextInstructionAddress, encodings.UINT8) 
 			return instruction
 		}
@@ -211,7 +207,7 @@ export class ControlUnit {
 		this.fetchInstruction(this.pc)
 		if (this.ir === undefined){
 			this.interrupt = 1
-			if (config.verbose) console.debug(`The current program counter's cell is undefined - bad memory or end-of-memory?`)
+			if (config.verbose) console.info(`The current program counter's cell is undefined - bad memory or end-of-memory?`)
 			return exitCodes.UNDEFINED_INSTRUCTION
 		}
 		this.opHistory.push(this.ir)
@@ -223,7 +219,7 @@ export class ControlUnit {
 		// An interrupt singal won't block the current machine cycle (which must be idempotent), but will block the following one
 		if (this.interrupt){
 			let endAddress = this.saveProgramState(this.programStateAddr)
-			if (config.verbose){ console.debug(`Received interrupt; state is:`, {
+			if (config.verbose){ console.info(`Received interrupt; state is:`, {
 				pc: this.pc, ir: this.ir, regs: this.regs, mem: this.mem
 			})}
 			return exitCodes.INTERRUPTED
@@ -242,12 +238,12 @@ export class ControlUnit {
 		lengthBytes = 19
 	}={}){
 		let programState = { regs, pc, ir, lengthBytes }
-		let writingAddr = programStateAddr.toDec()
+		let writingAddr = programStateAddr.toDec(encodings.UINT8)
 
 		this.mem[writingAddr] = programState.pc
 		writingAddr = writingAddr + 1
 		
-		let result = eachWord(programState.ir, (bits, i)=>{
+		eachWord(programState.ir, (bits)=>{
 			if (writingAddr >= this.mem.length){
 				let err = Error(`Tried to write to an address greater than memory length`)
 				console.error(err)
@@ -258,17 +254,17 @@ export class ControlUnit {
 		})
 
 		let saveArrayToMem = (arr, startAddr, mem = this.mem) => {
-			let writingAddr = startAddr.toDec()
+			let writingAddr = startAddr.toDec(encodings.UINT8)
 			for (let cell of arr){
 				mem[writingAddr = cell]
 				writingAddr = writingAddr + 1
 			}
-			return Bitstring.fromDec(writingAddr)
+			return Bitstring.fromDec(writingAddr, encodings.UINT8)
 		}
 
-		let writingAddrBitstring = Bitstring.fromDec(writingAddr)
+		let writingAddrBitstring = Bitstring.fromDec(writingAddr, encodings.UINT8)
 		// TODO bugged - says final address is only 1 more than starting address?
-		if (config.verbose) console.debug(`Saved program state into main memory from ${programStateAddr.toDec()} to ${writingAddrBitstring.toDec()}...\n`)
+		if (config.verbose) console.info(`Saved program state into main memory from ${programStateAddr.toDec(encodings.UINT8)} to ${writingAddrBitstring.toDec(encodings.UINT8)}...\n`)
 
 		writingAddr = saveArrayToMem(programState.regs, writingAddrBitstring)
 
