@@ -19,10 +19,8 @@ export let binToDec = (/*string*/bin, encoding)=>{
 		}
 		if (isNegative) base10 = -base10
 	} else if (encoding === encodings.UINT8){
-		console.debug(bin)
 		// TODO: dedupe
 		while (bin.length > 0){
-			console.debug(bin)
 			let lastChar = bin.substr(bin.length - 1, 1)
 			bin = bin.substr(0, bin.length - 1)
 			let denomination = Math.pow(2, charactersDeep)
@@ -89,7 +87,8 @@ export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8, a
 		// Do the actual numeric format translation as if the number we have were positive
 		let bits = decToSimpleBin(Math.abs(sawtoothed)) 
 
-		if (bits[0] === '1' && [...bits].slice(1).every(val => val === '0')){
+		if ( Math.abs(sawtoothed) === signedMax && bits[0] === '1' && [...bits].slice(1).every(val => val === '0') ){
+			// 
 			// By inputting -(max signed size + 1), decToSimpleBin already happens to return 100000...; the highest negative value (correct output), and doesn't need negating / prepending.
 			return bits
 		}

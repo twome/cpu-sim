@@ -5,6 +5,8 @@
 */
 
 // TODO: specify the main mem address size & the size within each memory cell. this will determine the size of instructions
+// TODO: use Memory class for mem/reg
+	// - proxy Memory to keep a list of which addresses have been read & which modified that resets upon each cycle; then we can use 
 
 import { config, exitCodes, encodings } from './config.js'
 import { Bitstring } from './binary-encoding.js'
@@ -54,7 +56,8 @@ export class ControlUnit {
 			pc: bootAddress, // Program counter. Ready the CPU to bootstrap (this address would be ROM)
 			ir: null, // Instruction register
 			interrupt: false,
-			running: false
+			running: false,
+			opHistory: []
 		})
 
 		// Operations numerically ordered
@@ -79,12 +82,16 @@ export class ControlUnit {
 	}
 
 	reset(hard){
+		clearInterval(this.waitingCycle)
+		this.interrupt = false
 		this.pc = this.cfg.bootAddress
 		this.regs = Array.from(Array(0x10))
 		if (hard) this.flush(this.mem)
 	}
 
 	reboot(){
+		this.running = false
+		this.interrupt = false
 		if (config.verbose) console.info('Rebooting')
 		this.reset()
 		this.boot()
@@ -113,12 +120,14 @@ export class ControlUnit {
 		let byte2 = this.mem[address.toDec() + 1] // Using the `+` operand to concatenate transforms to .toValue() ie String
 		let instruction = new Bitstring(byte1 + byte2)
 
-		if (instruction.length !== 16) throw Error(`Instruction register must be 2 bytes, not: ${instruction.length} bits`) // 2 bytes; 4 hexes
+		// 2 bytes; 4 hexes
+		if (instruction.length !== 16) throw Error(`Instruction register must be 2 bytes, not: ${instruction.length} bits`) 
  		if (instruction === null || instruction === undefined) throw Error(`Address is empty; can't decode`)
 		
 		// Place the instruction in the register, ready to decode
 		this.ir = instruction
 
+		this.executingPc = this.pc // Keep track of the currently executing instruction's starting MM address
 		// Increment program counter by the size of the retrieved instruction (here we assume it's always 2 bytes).
 		// TODO: fix accidentally returning to address 0 instread of >128
 		let nextInstructionAddress = this.pc.toDec(encodings.UINT8) + 2
@@ -165,16 +174,19 @@ export class ControlUnit {
 			if (config.verbose) console.debug(`The current program counter's cell is undefined - bad memory or end-of-memory?`)
 			return exitCodes.UNDEFINED_INSTRUCTION
 		}
+		this.opHistory.push(this.ir)
 		let decodedInstructionArr = this.decodeInstruction(this.ir.toHex())
 		this.executeInstruction(...decodedInstructionArr)
 		
-		if (afterCycleFn) afterCycleFn(this.mem, this.regs, this.pc, this.ir)
+		if (afterCycleFn) afterCycleFn(this.mem, this.regs, this.executingPc, this.ir)
 		
 		// An interrupt singal won't block the current machine cycle (which must be idempotent), but will block the following one
 		if (this.interrupt){
 
 			let endAddress = this.saveProgramState(this.programStateAddr)
-			if (config.verbose) console.debug(`Received interrupt`, {pc: this.pc, ir: this.ir, regs: this.regs, mem: this.mem})
+			if (config.verbose){ console.debug(`Received interrupt; state is:`, {
+				pc: this.pc, ir: this.ir, regs: this.regs, mem: this.mem
+			})}
 			return exitCodes.INTERRUPTED
 		}
 		
@@ -216,7 +228,8 @@ export class ControlUnit {
 		}
 
 		let writingAddrBitstring = Bitstring.fromDec(writingAddr)
-		if (config.verbose) console.debug(`Saved program state into main memory from ${programStateAddr} to ${writingAddrBitstring}...\n`)
+		// TODO bugged - says final address is only 1 more than starting address?
+		if (config.verbose) console.debug(`Saved program state into main memory from ${programStateAddr.toDec()} to ${writingAddrBitstring.toDec()}...\n`)
 
 		writingAddr = saveArrayToMem(programState.regs, writingAddrBitstring)
 

@@ -9,7 +9,7 @@
   ],
   "license": "MIT",
   "main": "enum.js",
-  "main": "module.js",
+  "module": "enum.js",
   "eslintConfig": {
     "env": {
       "es6": true,

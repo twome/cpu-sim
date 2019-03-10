@@ -1,7 +1,7 @@
 /*
 	Visual rendering of abstract CPU parts for browsers.
 
-	NB. extremely ugly & temporary
+	NB. extremely ugly & temporary; this is just for quickly controlling the abstract model
 */
 
 import { ControlUnit } from './cpu-sim.js'
@@ -11,32 +11,50 @@ const { document } = window // Browser deps imported from global to module scope
 
 let memContainerEl = document.querySelector(`.memory`)
 let regContainerEl = document.querySelector(`.register`)
-let irEl = document.querySelector('.instructionRegister')
-let pcEl = document.querySelector('.programCounter')
+let irEl = document.querySelector(`.instructionRegister`)
+let pcEl = document.querySelector(`.programCounter`)
+
+let translateToHex = false
 
 export let renderView = (mem, reg, pc, ir)=>{
-	console.debug(typeof mem)
+	let lastExecutedEls = memContainerEl.querySelectorAll(`.lastActiveCell`)
 	mem.forEach((val, i)=>{
 		let sequence = mem[i]
-		let cellEl = memContainerEl.children[i] || document.createElement(`li`)
-		console.debug(typeof i)
-		if (pc.toDec() === i){
-			console.debug('CURRENT PC', pc)
-			cellEl.classList.add(`memory_lastExecutedCell`)
+		let cellEl = memContainerEl.children[i]
+		let toWrite = sequence || `undef`
+		if (sequence && translateToHex) toWrite = toWrite.toHex()
+		console.debug(translateToHex)
+		if (!cellEl){
+			cellEl = document.createElement(`li`)
+			memContainerEl.appendChild(cellEl)
+			let numberEl = document.createElement(`span`)
+			numberEl.classList.add(`cellNumber`)
+			numberEl.innerText = i + `:`
+			let textNode = document.createTextNode(toWrite)
+			cellEl.appendChild(numberEl)
+			cellEl.appendChild(textNode)
+		} else {
+			let textNode = cellEl.childNodes[1]
+			textNode.textContent = toWrite
 		}
-		cellEl.innerText = sequence ? sequence : `undef`
-		memContainerEl.appendChild(cellEl)
+		
+		if (pc.toDec() === i || pc.toDec() === i - 1){ // These cells represents the memory address(es) last executed
+			if (lastExecutedEls.length > 0) lastExecutedEls.forEach(el => el.classList.remove(`lastActiveCell`))
+			cellEl.classList.add(`lastActiveCell`)
+		}
 	})
 
 	for (let i in reg){
+		i = Number(i)
 		let sequence = reg[i]
 
-		let registerEl = regContainerEl.children[i] || document.createElement(`li`)
+		let registerEl = regContainerEl.children[i]
+		if (!registerEl){
+			registerEl = document.createElement(`li`)
+			regContainerEl.appendChild(registerEl)
+		}
 		registerEl.innerText = sequence
-
-		regContainerEl.appendChild(registerEl)
 	}
-
 	
 	irEl.innerText = ir.toHex()
 
@@ -49,6 +67,7 @@ let mem = Array(0x100).fill(Bitstring.fromHex(`00`))
 // mem[1] = Bitstring.fromHex(`21ff`)
 let cu = new ControlUnit({
 	mem, regs,
+	waitBetweenCyclesMs: 1000,
 	afterCycleFn: (mem, regs, pc, ir)=>{
 		// console.debug(pc.toHex(), ir.toHex(), regs, mem)
 		renderView(mem, regs, pc, ir)
@@ -89,5 +108,22 @@ resetBtnEl.addEventListener(`click`, e => {
 })
 
 document.querySelector(`.js-BootAddr`).addEventListener(`change`, function(){
-	cu.pc = Bitstring.fromHex(this.val)
+	cu.pc = Bitstring.fromHex(this.value)
 })
+
+document.querySelector(`input[name="translateToHex"]`).addEventListener(`change`, function(){
+	translateToHex = this.checked
+})
+
+let memAddrToChangeEl = document.querySelector(`.js-MemAddrToChange`)
+let memValToChangeEl = document.querySelector(`.js-MemValToChange`)
+
+// memAddrToChangeEl.addEventListener(`change`, function(){
+	// cu.mem[Bitstring.fromHex(this.value)] = Bitstring.fromHex(memValToChangeEl.value)
+// })
+memValToChangeEl.addEventListener(`change`, function(){
+	let cellAddress = Bitstring.fromHex(memAddrToChangeEl.value)
+	let cellValue = Bitstring.fromHex(this.value)
+	cu.mem[cellAddress.toDec()] = cellValue
+})
+
