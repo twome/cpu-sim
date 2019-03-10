@@ -19,8 +19,10 @@ export let binToDec = (/*string*/bin, encoding)=>{
 		}
 		if (isNegative) base10 = -base10
 	} else if (encoding === encodings.UINT8){
+		console.debug(bin)
 		// TODO: dedupe
 		while (bin.length > 0){
+			console.debug(bin)
 			let lastChar = bin.substr(bin.length - 1, 1)
 			bin = bin.substr(0, bin.length - 1)
 			let denomination = Math.pow(2, charactersDeep)
@@ -62,30 +64,43 @@ export let decToSimpleBin = dec => {
 	return bits
 }
 
+// TODO fix 4-bit uint translation
 export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8, allowOverflows = cfg.allowOverflows)=>{
 	let givenInteger = integer
 	let unsignedMax = Math.pow(2, wordLength)
 	
 	if (encoding === encodings.TWO_COMP){
-		let isNegative = Math.sign(integer) === -1
+		let inputNegative = Math.sign(integer) === -1
+		let outputNegative = inputNegative
 		let signedMax = unsignedMax / 2 // Leave out 1 digit for sign
 		
 		if (allowOverflows && integer > (signedMax / 2) - 1 ) throw Error('Exceeded maximum positive size')
 		if (allowOverflows && integer < -(signedMax / 2) ) throw Error('Exceeded maximum negative size')
 		
-		if (isNegative) integer = -integer
-
 		// Spin the signed number into range
-		integer = integer % signedMax // TODO: This isn't accurate, I think, due to the way overflows are sign-asymmetric
+		// By feeding this function |integer| and then negating the value of fn(integer) [the y-axis], 
+		let xAbs = Math.abs(integer) // Mirrors the resulting function around y-axis
+		let sawtoothed = ((xAbs + signedMax) % unsignedMax) - signedMax // This is mirrored
+		
+		// Then we flip the negative half of fn(x) around the x-axis, so that it now aligns with a 
+		// theoretical sawtooth
+		if (Math.sign(sawtoothed) === -1) outputNegative = !outputNegative
+		
+		// Do the actual numeric format translation as if the number we have were positive
+		let bits = decToSimpleBin(Math.abs(sawtoothed)) 
 
-		let bits = decToSimpleBin(integer) // Do the actual numeric format translation
+		if (bits[0] === '1' && [...bits].slice(1).every(val => val === '0')){
+			// By inputting -(max signed size + 1), decToSimpleBin already happens to return 100000...; the highest negative value (correct output), and doesn't need negating / prepending.
+			return bits
+		}
 
 		// Prepend non-significant 0 bits
+		// We subtract one from this to account for the sign bit
 		let zeroesToPrepend = Math.max(0, wordLength - 1 - bits.length)
 		bits = '0'.repeat(zeroesToPrepend) + bits
 
 		// Use a shortcut to get the negative two's complement, then add the sign bit
-		if (isNegative){ 
+		if (outputNegative){ 
 			bits = negateTwosComplement(bits)
 			bits = '1' + bits
 		} else {
@@ -97,10 +112,10 @@ export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8, a
 		return bits
 	} else if (encoding === encodings.UINT8){
 		// TODO: dedupe the different encoding algos
-		let bits = decToSimpleBin
+		let bits = decToSimpleBin(integer)
 
 		// Prepend non-significant 0 bits
-		let zeroesToPrepend = Math.max(0, wordLength - 1 - bits.length)
+		let zeroesToPrepend = Math.max(0, wordLength - bits.length)
 		bits = '0'.repeat(zeroesToPrepend) + bits
 
 		if (bits.length > wordLength) throw Error(`Final bit string required to represent integer ${givenInteger} is longer than word length.`)
