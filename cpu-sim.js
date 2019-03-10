@@ -15,16 +15,46 @@ import { addFloating, addTwoComp, boolOr, boolAnd, boolXor, bitRotateRight } fro
 class Memory extends Array {
 	constructor(addressesDec = 256, cellBitLengthDec = 8, {
 		wordBitLength = 8,
-		encoding = encodings.TWO_COMP
+		encoding = encodings.UINT8
 	}={}){
-		super()
+		super(addressesDec)
 		Object.assign(this, {addressesDec, cellBitLengthDec, wordBitLength})
-		return this.fill(new Bitstring(`0`.repeat(cellBitLengthDec), {
-			encoding, wordLength: wordBitLength,
+		this.fill(new Bitstring(`0`.repeat(cellBitLengthDec), {
+			encoding, 
+			wordLength: wordBitLength
 		}))
+	}
+
+	// Return a proxy of this instance that keeps track of which addresses were read and written (eg for visualisation).
+	proxify(){
+		this.changedAddresses = []
+		this.readAddresses = []
+		return new Proxy(this, {
+			set: function(target, propKey, value, receiver){
+				if (typeof propKey === 'number' || typeof Number(propKey) === 'number'){
+					target.changedAddresses.push({ 
+						propKey, 
+						beforeChange: target[propKey]
+					})
+				}
+				target[propKey] = value
+				return value
+			},
+			get: function(target, propKey, receiver){
+				let value = target[propKey]
+				if (typeof propKey === 'number' || typeof Number(propKey) === 'number'){
+					target.readAddresses.push({ 
+						propKey, 
+						value
+					})
+				}
+				return value
+			}
+		})
 	}
 }
 
+// Operate on each word in a continuous string of bits separately
 const eachWord = (bitstring, wordFn, wordLength = 8)=>{
 	let wordsCount = bitstring.length / wordLength
 	for (let i = 0; i > wordsCount; i = i + 1){
@@ -36,8 +66,7 @@ const eachWord = (bitstring, wordFn, wordLength = 8)=>{
 	return true
 }
 
-// Simulates the control unit part of a CPU, which reads and writes data between the main memory and CPU registers/cache, 
-// keeps track of program state, and 
+// Simulates the control unit part of a CPU, which reads and writes data between the main memory and CPU registers/cache and keeps track of program state.
 export class ControlUnit {
 	constructor({
 		afterCycleFn,
@@ -118,7 +147,7 @@ export class ControlUnit {
 		// Fetch the PC instruction from main memory
 		let byte1 = this.mem[address.toDec(encodings.UINT8)]
 		let byte2 = this.mem[address.toDec(encodings.UINT8) + 1] // Using the `+` operand to concatenate transforms to .toValue() ie String
-		console.debug(address, address.toDec(encodings.UINT8), byte1, byte2, this)
+		// console.debug(address, address.toDec(encodings.UINT8), byte1, byte2, this)
 		let instruction = new Bitstring(byte1 + byte2)
 
 		// 2 bytes; 4 hexes
@@ -129,11 +158,21 @@ export class ControlUnit {
 		this.ir = instruction
 
 		this.executingPc = this.pc // Keep track of the currently executing instruction's starting MM address
-		// Increment program counter by the size of the retrieved instruction (here we assume it's always 2 bytes).
-		// TODO: fix accidentally returning to address 0 instread of >128
-		let nextInstructionAddress = this.pc.toDec(encodings.UINT8) + 2
 		
-		this.pc = Bitstring.fromDec(nextInstructionAddress) // TODO: replace with binary addition
+		// Increment program counter by the size of the retrieved instruction (here we assume it's always 2 bytes).
+		let nextInstructionAddress = this.pc.toDec(encodings.UINT8) + 2 // TODO: replace with binary addition
+		if (nextInstructionAddress > this.mem.length - 1){
+			this.pc = this.cfg.bootAddress 
+			console.debug('reset pc')
+			console.debug(this.pc, nextInstructionAddress)
+			this.interrupt = 1
+			return Error('Next instruction address exceeds maximum memory address; we have reached the last address.')
+		} else {
+			console.debug('set pc to next')
+			this.pc = Bitstring.fromDec(nextInstructionAddress, encodings.UINT8) 
+			return instruction
+		}
+
 	}
 
 	decodeInstruction(strHex){
@@ -183,7 +222,6 @@ export class ControlUnit {
 		
 		// An interrupt singal won't block the current machine cycle (which must be idempotent), but will block the following one
 		if (this.interrupt){
-
 			let endAddress = this.saveProgramState(this.programStateAddr)
 			if (config.verbose){ console.debug(`Received interrupt; state is:`, {
 				pc: this.pc, ir: this.ir, regs: this.regs, mem: this.mem

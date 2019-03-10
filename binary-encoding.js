@@ -125,6 +125,7 @@ export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8, a
 
 export let hexToBin = (hex)=>{
 	if (typeof hex !== 'string') throw Error('hex must be a string')
+	hex = hex.replace(/^0x/, '')
 	if (!hex || hex.length <= 0 || hex.match(/[^abcdef1234567890]/)) throw Error('fromHex: includes non-hexadecimal characters')
 	let accumulator = ''
 	while (hex.length > 0){
@@ -147,11 +148,11 @@ export class Bitstring extends String {
 		floatingExponentLength = 3, // The rest of the float we'll fill with mantissa,
 		allowOverflows = cfg.allowOverflows
 	}={}){
-		// Restart the constructor with a translated string if necessary
+		// Translate input strings
 		if (typeof inputSequence === 'number'){
-			inputSequence = Bitstring.fromDec(inputSequence)
+			inputSequence = decToBin(inputSequence, encoding, wordLength)
 		} else if (inputSequence.match(/^0x/)){
-			inputSequence = Bitstring.fromHex(inputSequence.replace(/^0x/, ''))
+			inputSequence = hexToBin(inputSequence)
 		}
 		if (inputSequence.match(/[^01]/)) throw Error('Bitstring: input string must consist of the characters "0" or "1"')
 
@@ -168,12 +169,14 @@ export class Bitstring extends String {
 	}
 
 	static fromHex(hex){
-		hex = hex.replace(/^0x/, '')
 		return new Bitstring(hexToBin(hex))
 	}
 
 	static fromDec(integer, encoding = Bitstring.encodings.TWO_COMP, wordLength = 8){
-		return new Bitstring(decToBin(integer, encoding, wordLength))
+		return new Bitstring(decToBin(integer, encoding, wordLength), {
+			encoding, wordLength, 
+			allowOverflows: this.allowOverflows
+		})
 	}
 }
 Bitstring.encodings = encodings
