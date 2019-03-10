@@ -14,7 +14,10 @@ let regContainerEl = document.querySelector(`.register`)
 let irEl = document.querySelector(`.instructionRegister`)
 let pcEl = document.querySelector(`.programCounter`)
 
-let translateToHex = false
+let vm = {
+	translateToHex: false,
+	simulationDelayMs: 50
+}
 
 export let renderView = (mem, reg, pc, ir)=>{
 	let lastExecutedEls = memContainerEl.querySelectorAll(`.lastActiveCell`)
@@ -22,8 +25,7 @@ export let renderView = (mem, reg, pc, ir)=>{
 		let sequence = mem[i]
 		let cellEl = memContainerEl.children[i]
 		let toWrite = sequence || `undef`
-		if (sequence && translateToHex) toWrite = toWrite.toHex()
-		console.debug(translateToHex)
+		if (sequence && vm.translateToHex) toWrite = toWrite.toHex()
 		if (!cellEl){
 			cellEl = document.createElement(`li`)
 			memContainerEl.appendChild(cellEl)
@@ -62,12 +64,12 @@ export let renderView = (mem, reg, pc, ir)=>{
 }
 
 let regs = Array(0x10).fill(Bitstring.fromHex(`0`))
-let mem = Array(0x100).fill(Bitstring.fromHex(`00`))
+let mem = Array(0x100).fill(Bitstring.fromHex(`00`)).map((val, i) => i % 2 === 0 ? Bitstring.fromHex(`00`) : Bitstring.fromHex(`0f`))
 // mem[0] = Bitstring.fromHex(`2032`)
 // mem[1] = Bitstring.fromHex(`21ff`)
 let cu = new ControlUnit({
 	mem, regs,
-	waitBetweenCyclesMs: 1000,
+	waitBetweenCyclesMs: vm.simulationDelayMs,
 	afterCycleFn: (mem, regs, pc, ir)=>{
 		// console.debug(pc.toHex(), ir.toHex(), regs, mem)
 		renderView(mem, regs, pc, ir)
@@ -112,7 +114,12 @@ document.querySelector(`.js-BootAddr`).addEventListener(`change`, function(){
 })
 
 document.querySelector(`input[name="translateToHex"]`).addEventListener(`change`, function(){
-	translateToHex = this.checked
+	vm.translateToHex = this.checked
+})
+
+document.querySelector(`input[name="simulationDelay"]`).addEventListener(`change`, function(){
+	vm.simulationDelayMs = Number(this.value)
+	cu.cfg.waitBetweenCyclesMs = vm.simulationDelayMs
 })
 
 let memAddrToChangeEl = document.querySelector(`.js-MemAddrToChange`)

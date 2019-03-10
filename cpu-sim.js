@@ -48,7 +48,7 @@ export class ControlUnit {
 		waitBetweenCyclesMs = 50
 	}){
 		// Options
-		this.cfg = { bootAddress, waitBetweenCyclesMs } // These should not change after being initially set
+		this.cfg = { bootAddress, waitBetweenCyclesMs }
 
 		// State
 		Object.assign(this, {
@@ -116,8 +116,9 @@ export class ControlUnit {
 
 	fetchInstruction(address){
 		// Fetch the PC instruction from main memory
-		let byte1 = this.mem[address.toDec()]
-		let byte2 = this.mem[address.toDec() + 1] // Using the `+` operand to concatenate transforms to .toValue() ie String
+		let byte1 = this.mem[address.toDec(encodings.UINT8)]
+		let byte2 = this.mem[address.toDec(encodings.UINT8) + 1] // Using the `+` operand to concatenate transforms to .toValue() ie String
+		console.debug(address, address.toDec(encodings.UINT8), byte1, byte2, this)
 		let instruction = new Bitstring(byte1 + byte2)
 
 		// 2 bytes; 4 hexes
