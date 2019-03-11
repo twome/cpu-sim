@@ -89,22 +89,17 @@ export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8, a
 		let bits = decToSimpleBin(Math.abs(sawtoothed)) 
 
 		if ( Math.abs(sawtoothed) === signedMax && bits[0] === '1' && [...bits].slice(1).every(val => val === '0') ){
-			// 
 			// By inputting -(max signed size + 1), decToSimpleBin already happens to return 100000...; the highest negative value (correct output), and doesn't need negating / prepending.
 			return bits
 		}
 
 		// Prepend non-significant 0 bits
-		// We subtract one from this to account for the sign bit
-		let zeroesToPrepend = Math.max(0, wordLength - 1 - bits.length)
+		let zeroesToPrepend = Math.max(0, wordLength - bits.length)
 		bits = '0'.repeat(zeroesToPrepend) + bits
 
 		// Use a shortcut to get the negative two's complement, then add the sign bit
 		if (outputNegative){ 
 			bits = negateTwosComplement(bits)
-			bits = '1' + bits
-		} else {
-			bits = '0' + bits
 		}
 
 		if (bits.length > wordLength) throw Error(`Final bit string required to represent integer ${givenInteger} is longer than word length.`)
@@ -138,22 +133,6 @@ export let hexToBin = (hex)=>{
 	}
 	return accumulator
 }
-console.debug(hexToBin('e0'))
-console.debug(hexToBin('d0'))
-console.debug(hexToBin('c0'))
-console.debug(hexToBin('b0'))
-console.debug('buh')
-console.debug(decToBin(16, encodings.TWO_COMP, 4))
-console.debug(decToBin(15, encodings.TWO_COMP, 4))
-console.debug(decToBin(14, encodings.TWO_COMP, 4))
-console.debug(decToBin(13, encodings.TWO_COMP, 4))
-console.debug(decToBin(12, encodings.TWO_COMP, 4))
-console.debug(decToBin(11, encodings.TWO_COMP, 4))
-console.debug(decToBin(10, encodings.TWO_COMP, 4))
-console.debug(decToBin(9, encodings.TWO_COMP, 4))
-console.debug(decToBin(8, encodings.TWO_COMP, 4))
-console.debug(decToBin(7, encodings.TWO_COMP, 4))
-console.debug(decToBin(6, encodings.TWO_COMP, 4))
 
 /* 
 	This is a representation of a bit sequence in the form of a string - basically just to allow easier manipulation & checking.

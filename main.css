@@ -35,6 +35,8 @@ label {
 }
 
 .memory {
+	max-height: 70vh;
+	overflow-y: auto;
 	background: hsla(240, 80%, 30%, 1);
 	color: white;
 }
@@ -51,7 +53,7 @@ label {
 	align-items: center;
 	justify-content: space-evenly;
 }
-.binaryDisplays li {
+.Cell {
 	flex-basis: calc(12.5% - 0.62em);
 	flex-grow: 1;
 	flex-shrink: 1;
@@ -65,13 +67,27 @@ label {
 	list-style: none;
 	font-family: monospace;
 }
-.binaryDisplays li:nth-child(4n){
+.binaryDisplays .Cell:nth-child(4n){
 	color: hsla(6, 100%, 79%, 1);
 }
-.cellNumber {
+/* TODO make these elements of "cell" block */
+@keyframes executionFade {
+	from {
+		background-color: hsla(240, 80%, 60%, 1);
+	}
+
+	to {
+		background-color: hsla(240, 80%, 30%, 1);
+	}
+}
+.Cell_executed {
+	animation: executionFade 6s;
+	animation-timing-function: ease-in;
+}
+.Cell_number {
 	color: hsla(0,0%,100%,0.5);
 }
-.lastActiveCell {
+.Cell_lastActive {
 	background: black;
 	color: white;
 }

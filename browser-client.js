@@ -47,7 +47,7 @@ loadIns(50, 'c000') // halt
 // TODO - test addFloat
 
 export let renderView = (mem, reg, pc, ir)=>{
-	let lastExecutedEls = memContainerEl.querySelectorAll(`.lastActiveCell`)
+	let lastExecutedEls = memContainerEl.querySelectorAll(`.Cell_lastActive`)
 	mem.forEach((val, i)=>{
 		let sequence = mem[i]
 		let cellEl = memContainerEl.children[i]
@@ -55,9 +55,10 @@ export let renderView = (mem, reg, pc, ir)=>{
 		if (sequence && vm.translateToHex) toWrite = toWrite.toHex()
 		if (!cellEl){
 			cellEl = document.createElement(`li`)
+			cellEl.classList.add('Cell')
 			memContainerEl.appendChild(cellEl)
 			let numberEl = document.createElement(`span`)
-			numberEl.classList.add(`cellNumber`)
+			numberEl.classList.add(`Cell_number`)
 			numberEl.innerText = i + `:`
 			let textNode = document.createTextNode(toWrite)
 			cellEl.appendChild(numberEl)
@@ -68,8 +69,11 @@ export let renderView = (mem, reg, pc, ir)=>{
 		}
 		
 		if (pc.toDec() === i || pc.toDec() === i - 1){ // These cells represents the memory address(es) last executed
-			if (lastExecutedEls.length > 0) lastExecutedEls.forEach(el => el.classList.remove(`lastActiveCell`))
-			cellEl.classList.add(`lastActiveCell`)
+			if (lastExecutedEls.length > 0) lastExecutedEls.forEach(el => {
+				el.classList.add('Cell_executed')
+				el.classList.remove(`Cell_lastActive`)
+			})
+			cellEl.classList.add(`Cell_lastActive`)
 		}
 	})
 
@@ -80,6 +84,7 @@ export let renderView = (mem, reg, pc, ir)=>{
 		let registerEl = regContainerEl.children[i]
 		if (!registerEl){
 			registerEl = document.createElement(`li`)
+			registerEl.classList.add('Cell')
 			regContainerEl.appendChild(registerEl)
 		}
 		registerEl.innerText = sequence
@@ -90,10 +95,10 @@ export let renderView = (mem, reg, pc, ir)=>{
 	pcEl.innerText = pc.toDec()
 
 	// Visual "tick" indicator
-	document.body.style.transition = 'background-color 50ms'
-	document.body.style.backgroundColor = 'hsla(55, 100%, 53%, 0.51)'
+	pcEl.style.transition = 'background-color 50ms'
+	pcEl.style.backgroundColor = 'hsla(55, 100%, 53%, 0.51)'
 	setTimeout(()=>{
-		document.body.style.backgroundColor = 'white'
+		pcEl.style.backgroundColor = ''
 	}, 50)
 }
 
