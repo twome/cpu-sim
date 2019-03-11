@@ -72,8 +72,8 @@ export class ControlUnit {
 		afterCycleFn,
 		bootAddress = Bitstring.fromHex(`00`),
 		programStateAddr = Bitstring.fromHex(`ec`), // Leaves 16 bytes for mem, 2 for IR and 1 for PC
-		mem = Array.from(Array(0x100)), // Main memory; 256 addresses,
-		regs = Array.from(Array(0x10)), // Shared ALU/CPU registers; 16 addresses
+		mem = Array(0x100).fill(new Bitstring('0'.repeat(8))), // Main memory; 256 addresses,
+		regs = Array(0x10).fill(new Bitstring('0'.repeat(8))), // Shared ALU/CPU registers; 16 addresses
 		waitBetweenCyclesMs = 50
 	}){
 		// Options
@@ -173,7 +173,7 @@ export class ControlUnit {
 
 	decodeInstruction(strHex){
 		if (strHex.length !== 4) throw Error(`strhex must be 4 hex chars`)
-		let opcode = Bitstring.fromHex(strHex[0]).toDec()
+		let opcode = Bitstring.fromHex(strHex[0]).toDec(encodings.UINT8)
 		let second = Bitstring.fromHex(strHex[1])
 		let third = Bitstring.fromHex(strHex[2])
 		let fourth = Bitstring.fromHex(strHex[3])
@@ -193,7 +193,7 @@ export class ControlUnit {
 		if (opcode === 4) format = [null, third, fourth] // 0RS
 		if ([0, 12].includes(opcode)) format = [null, null, null] // 000
 		if (format === undefined) throw Error(`No operation found for for opcode ${opcode}`)
-		format = format.filter(val => val === null)
+		format = format.filter(val => val !== null)
 		return format
 	}
 
@@ -272,8 +272,8 @@ export class ControlUnit {
 	}
 
 	loadAddress(regIndex, address){
-		let pattern = this.mem[address.toDec()]
-		this.regs[regIndex.toDec()] = pattern
+		let pattern = this.mem[address.toDec(encodings.UINT8)]
+		this.regs[regIndex.toDec(encodings.UINT8)] = pattern
 
 		return {
 			opcode: `1`
@@ -281,7 +281,7 @@ export class ControlUnit {
 	}
 
 	loadPattern(regIndex, pattern){
-		this.regs[regIndex.toDec()] = pattern
+		this.regs[regIndex.toDec(encodings.UINT8)] = pattern
 
 		return {
 			opcode: `2`
@@ -289,57 +289,58 @@ export class ControlUnit {
 	}
 
 	storeAddress(regIndex, address){
-		let toStore = this.regs[regIndex.toDec()]
-		if (toStore.length > 4) throw Error(`Tried to store more than 4 hex characters in address ${address.toDec()}`)
-		this.mem[address.toDec()] = toStore
+		let toStore = this.regs[regIndex.toDec(encodings.UINT8)]
+		if (toStore.length > 8) throw Error(`Tried to store more than 8 bits in address ${address.toDec(encodings.UINT8)}`)
+		this.mem[address.toDec(encodings.UINT8)] = toStore
 
 		return {
 			opcode: `3`
 		}
 	}
 
-	moveRegister(regFrom, regTo) {
-		this.regs[regTo.toDec()] = this.regs[regFrom.toDec()]
+	moveRegister(regFrom, regTo){
+		this.regs[regTo.toDec(encodings.UINT8)] = this.regs[regFrom.toDec(encodings.UINT8)]
 
 		return {
 			opcode: `4`
 		}
 	}
 
-	addTwoComp(result, x, y) {
-		this.regs[result] = addTwoComp(this.regs[x.toDec()], this.regs[y.toDec()])
+	addTwoComp(resultReg, x, y){
+		let sum = addTwoComp(this.regs[x.toDec(encodings.UINT8)], this.regs[y.toDec(encodings.UINT8)])
+		this.regs[resultReg.toDec(encodings.UINT8)] = sum
 
 		return {
 			opcode: `5`
 		}
 	}
 
-	addFloating(result, x, y){
-		this.regs[result] = addFloating(this.regs[x.toDec()], this.regs[y.toDec()])
+	addFloating(resultReg, x, y){
+		this.regs[resultReg.toDec(encodings.UINT8)] = addFloating(this.regs[x.toDec(encodings.UINT8)], this.regs[y.toDec(encodings.UINT8)])
 
 		return {
 			opcode: `6`
 		}
 	}
 
-	or(result, x, y){
-		this.regs[result] = boolOr(this.regs[x.toDec()], this.regs[y.toDec()])
+	or(resultReg, x, y){
+		this.regs[resultReg.toDec(encodings.UINT8)] = boolOr(this.regs[x.toDec(encodings.UINT8)], this.regs[y.toDec(encodings.UINT8)])
 
 		return {
 			opcode: `7`
 		}
 	}
 
-	and(result, x, y){
-		this.regs[result] = boolAnd(this.regs[x.toDec()], this.regs[y.toDec()])
+	and(resultReg, x, y){
+		this.regs[resultReg.toDec(encodings.UINT8)] = boolAnd(this.regs[x.toDec(encodings.UINT8)], this.regs[y.toDec(encodings.UINT8)])
 
 		return {
 			opcode: `8`
 		}
 	}
 
-	xor(result, x, y){
-		this.regs[result] = boolXor(this.regs[x.toDec()], this.regs[y.toDec()])
+	xor(resultReg, x, y){
+		this.regs[resultReg.toDec(encodings.UINT8)] = boolXor(this.regs[x.toDec(encodings.UINT8)], this.regs[y.toDec(encodings.UINT8)])
 
 		return {
 			opcode: `9`
@@ -348,7 +349,8 @@ export class ControlUnit {
 
 	// TODO how many notches
 	rotate(target, rotations){
-		this.regs[target] = bitRotateRight(this.regs[target], rotations)
+		let rotated = bitRotateRight(this.regs[target.toDec(encodings.UINT8)], rotations.toDec(encodings.UINT8))
+		this.regs[target.toDec(encodings.UINT8)] = rotated
 
 		return {
 			opcode: `a`
@@ -356,8 +358,8 @@ export class ControlUnit {
 	}
 
 	jump(regToCheck, jumpTargetIndex){
-		let selectedRegisterContent = this.regs[regToCheck.toDec()].valueOf()
-		let register0Content = this.regs[0].valueOf()
+		let selectedRegisterContent = this.regs[regToCheck.toDec(encodings.UINT8)]
+		let register0Content = this.regs[0]
 		if (selectedRegisterContent === register0Content){ // Compare as plain strings
 			this.pc = jumpTargetIndex
 		}

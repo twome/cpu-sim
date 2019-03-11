@@ -2,6 +2,8 @@
 	These are the basic ALU operations on bit sequences (as strings)
 */
 
+let boolToBinChar = bool => bool ? '1' : '0'
+
 export const addTwoComp = (xStr, yStr, truncateTo = false)=>{
 	let x = xStr.split(``).reverse() // LSB first
 	let y = yStr.split(``).reverse()
@@ -51,7 +53,8 @@ export const boolXor = (x, y) => {
 	let resultArr = [...longer].map((val, i) =>{
 		let xBit = Number(x[i]), 
 		    yBit = Number(y[i])
-		return (xBit || yBit) && !(xBit && yBit)
+		let booled = (xBit || yBit) && !(xBit && yBit)
+		return boolToBinChar(booled)
 	}) 
 	return resultArr.join(``)
 }

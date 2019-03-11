@@ -63,7 +63,7 @@ export let decToSimpleBin = dec => {
 	return bits
 }
 
-// TODO fix 4-bit uint translation
+// TODO fix 4-bit uint && 4-bit two_comp
 export let decToBin = (integer, encoding = encodings.TWO_COMP, wordLength = 8, allowOverflows = cfg.allowOverflows)=>{
 	let givenInteger = integer
 	let unsignedMax = Math.pow(2, wordLength)
@@ -133,11 +133,27 @@ export let hexToBin = (hex)=>{
 		let hexChar = hex[0]
 		hex = hex.slice(1)
 		let decChar = hexAlphabet.indexOf(hexChar)
-		let bin = decToBin(decChar, undefined, 4)
+		let bin = decToBin(decChar, encodings.UINT8, 4)
 		accumulator = accumulator + bin.valueOf() // Concat
 	}
 	return accumulator
 }
+console.debug(hexToBin('e0'))
+console.debug(hexToBin('d0'))
+console.debug(hexToBin('c0'))
+console.debug(hexToBin('b0'))
+console.debug('buh')
+console.debug(decToBin(16, encodings.TWO_COMP, 4))
+console.debug(decToBin(15, encodings.TWO_COMP, 4))
+console.debug(decToBin(14, encodings.TWO_COMP, 4))
+console.debug(decToBin(13, encodings.TWO_COMP, 4))
+console.debug(decToBin(12, encodings.TWO_COMP, 4))
+console.debug(decToBin(11, encodings.TWO_COMP, 4))
+console.debug(decToBin(10, encodings.TWO_COMP, 4))
+console.debug(decToBin(9, encodings.TWO_COMP, 4))
+console.debug(decToBin(8, encodings.TWO_COMP, 4))
+console.debug(decToBin(7, encodings.TWO_COMP, 4))
+console.debug(decToBin(6, encodings.TWO_COMP, 4))
 
 /* 
 	This is a representation of a bit sequence in the form of a string - basically just to allow easier manipulation & checking.

@@ -1,7 +1,7 @@
 import Enum from './peers/enum/enum.js'
 
 // Static data
-export const encodings = new Enum(['TWO_COMP', 'EXCESS', 'FLOATING', 'UINT8']) // Number encodings in binary
+export const encodings = new Enum(['TWO_COMP', 'EXCESS', 'FLOAT', 'UINT8']) // Number encodings in binary
 export const exitCodes = new Enum([
 	{
 		accessor: 0, // Program successfully completed on its own terms
