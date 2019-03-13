@@ -1,7 +1,7 @@
 /*
 	Visual rendering of abstract CPU parts for browsers.
 
-	NB. extremely ugly & temporary; this is just for quickly controlling the abstract model
+	NB. This module is extremely ugly & temporary; this is just for quickly testing/controlling the abstract model
 */
 
 import { ControlUnit } from './cpu-sim.js'

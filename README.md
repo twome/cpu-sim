@@ -6,6 +6,11 @@ This is a quick model of a specific illustrative computer architecture described
 
 `/peers` are deps I've written that aren't published online anywhere, so they're just included in the repo.
 
+## Running
+
+Just serve the root directory with a static server, such as [live-server](https://github.com/tapio/live-server) or with `python -m SimpleHTTPServer 8000`.
+Hit 'boot' to start.
+
 ## Licence
 
 MIT
